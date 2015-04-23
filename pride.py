@@ -43,7 +43,7 @@ class Pride(object):
         >>> p.encrypt(unhexlify(b'ffffffffffffffff'))
         b'd70e60680a17b956'
         >>> p.decrypt(unhexlify(b'd70e60680a17b956'))
-        b'0000000000000000'
+        b'ffffffffffffffff'
 
     Identity:
 
@@ -64,6 +64,7 @@ class Pride(object):
         if not (isinstance(plain_text, six.binary_type)
                 and len(plain_text) == 8):
             raise ValueError("argument should be an 8-byte bytearray")
+
         state = _permute_inverse(plain_text)
         state = xor(state, self.k_0)
 
@@ -232,8 +233,6 @@ def _apply_matrix(matrix, state):
     >>> _apply_matrix(_L0, 0b0101101011010111) == 0b000111110000010
     True
     """
-    assert state <= 0xFFFF, "Should be 16-bit"
-
     state_ = []
     for row in matrix:
         newrow = 0
@@ -306,7 +305,17 @@ def _sbox_i(bits):
 
 
 def _key_derivation(k_1, round_):
-    """Subkey derivation function f_i"""
+    """Subkey derivation function f_i
+
+    >>> _key_derivation([0] * 8, 0)
+    [0, 0, 0, 0, 0, 0, 0, 0]
+    >>> _key_derivation([0] * 8, 1)
+    [0, 193, 0, 165, 0, 81, 0, 197]
+    >>> _key_derivation([0] * 8, 2)
+    [0, 130, 0, 74, 0, 162, 0, 138]
+    >>> _key_derivation([1] * 8, 2)
+    [1, 131, 1, 75, 1, 163, 1, 139]
+    """
     def g_0(x):
         return (x + 193 * round_) % 256
 
@@ -319,8 +328,9 @@ def _key_derivation(k_1, round_):
     def g_3(x):
         return (x + 197 * round_) % 256
 
-    return [k_1[0], g_0(k_1[1]), k_1[2], g_1(k_1[3]),
-            k_1[4], g_2(k_1[5]), k_1[6], g_3(k_1[7])]
+    key = [k_1[0], g_0(k_1[1]), k_1[2], g_1(k_1[3]),
+           k_1[4], g_2(k_1[5]), k_1[6], g_3(k_1[7])]
+    return key
 
 
 _Sbox_table = [0, 4, 8, 0xf, 1, 5, 0xe, 9, 2, 7, 0xa, 0xc, 0xb, 0xd, 6, 3]
