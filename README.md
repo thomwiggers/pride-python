@@ -10,3 +10,9 @@ See https://eprint.iacr.org/2014/453
 https://github.com/thomwiggers/python-pride
 
 Licence: New BSD
+
+Known Issues
+------------
+
+* Probable endianness problem screws up the end result.
+
