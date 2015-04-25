@@ -19,6 +19,9 @@ import six
 from itertools import chain
 
 
+__all__ = ['Pride']
+
+
 def xor(a, b):
     """Compute the xor of two arrays
 
