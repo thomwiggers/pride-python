@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf8, -*-
 """python-PRIDE
 
-Simple implementation of PRIDE in python.
+Simple implementation of PRIDE in python 3.
 
 This implementation does *not* make any claims regarding security!
 
@@ -43,16 +43,26 @@ class Pride(object):
         b'd70e60680a17b956'
         >>> hexlify(p.decrypt(unhexlify(b'd70e60680a17b956')))
         b'ffffffffffffffff'
+        >>> p = Pride(unhexlify(b'ffffffffffffffff0000000000000000'))
+        >>> hexlify(p.encrypt(unhexlify(b'0000000000000000')))
+        b'28f19f97f5e846a9'
+        >>> p = Pride(unhexlify(b'0000000000000000ffffffffffffffff'))
+        >>> hexlify(p.encrypt(unhexlify(b'0000000000000000')))
+        b'd123ebaf368fce62'
+        >>> p = Pride(unhexlify(b'0000000000000000fedcba9876543210'))
+        >>> hexlify(p.encrypt(unhexlify(b'0123456789abcdef')))
+        b'd1372929712d336e'
 
     Identity:
 
-        >>> hexlify(p.decrypt((p.encrypt(unhexlify(b'0000000000000000')))))
+        >>> hexlify(p.decrypt(p.encrypt(unhexlify(b'0000000000000000'))))
         b'0000000000000000'
 
     """
 
     def __init__(self, key):
-        if not len(key) == 16 or not isinstance(key, six.binary_type):
+        if not len(key) == 16 or not (isinstance(key, six.binary_type) or
+                                      isinstance(key, bytearray)):
             raise ValueError("Incorrect key format")
         self.rounds = 20
         self.k_1 = key[8:]
@@ -81,7 +91,9 @@ class Pride(object):
         return bytearray(state)
 
     def decrypt(self, cipher_text):
-        if not (isinstance(cipher_text, six.binary_type) and
+        if not ((isinstance(cipher_text, six.binary_type) or
+                 isinstance(cipher_text, bytearray))
+                and
                 len(cipher_text) == 8):
             raise ValueError("argument should be an 8-byte bytearray. "
                              "Type: %s, Length: %d" % (type(cipher_text),
@@ -448,5 +460,8 @@ _L2_inverse = (
 )
 
 if __name__ == "__main__":
+    if six.PY2:
+        print("Python 2 is currently not supported")
+        exit(1)
     import doctest
     doctest.testmod()
