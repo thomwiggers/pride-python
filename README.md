@@ -1,7 +1,7 @@
 python-PRIDE
 ============
 
-Simple implementation of PRIDE in python 3. Python 2 is currently not supported.
+Simple implementation of PRIDE in python.
 
 This implementation does *not* make any claims regarding security!
 

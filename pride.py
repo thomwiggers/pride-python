@@ -37,26 +37,33 @@ class Pride(object):
 
         >>> from binascii import unhexlify, hexlify
         >>> p = Pride(unhexlify(b'00000000000000000000000000000000'))
-        >>> hexlify(p.encrypt(unhexlify(b'0000000000000000')))
-        b'82b4109fcc70bd1f'
-        >>> hexlify(p.encrypt(unhexlify(b'ffffffffffffffff')))
-        b'd70e60680a17b956'
-        >>> hexlify(p.decrypt(unhexlify(b'd70e60680a17b956')))
-        b'ffffffffffffffff'
+        >>> hexlify(p.encrypt(unhexlify(b'0000000000000000'))
+        ...         ) == b'82b4109fcc70bd1f'
+        True
+        >>> hexlify(p.encrypt(unhexlify(b'ffffffffffffffff'))
+        ...        ) == b'd70e60680a17b956'
+        True
+        >>> hexlify(p.decrypt(unhexlify(b'd70e60680a17b956'))
+        ...        ) == b'ffffffffffffffff'
+        True
         >>> p = Pride(unhexlify(b'ffffffffffffffff0000000000000000'))
-        >>> hexlify(p.encrypt(unhexlify(b'0000000000000000')))
-        b'28f19f97f5e846a9'
+        >>> hexlify(p.encrypt(unhexlify(b'0000000000000000'))
+        ...        ) == b'28f19f97f5e846a9'
+        True
         >>> p = Pride(unhexlify(b'0000000000000000ffffffffffffffff'))
-        >>> hexlify(p.encrypt(unhexlify(b'0000000000000000')))
-        b'd123ebaf368fce62'
+        >>> hexlify(p.encrypt(unhexlify(b'0000000000000000'))
+        ...        ) == b'd123ebaf368fce62'
+        True
         >>> p = Pride(unhexlify(b'0000000000000000fedcba9876543210'))
-        >>> hexlify(p.encrypt(unhexlify(b'0123456789abcdef')))
-        b'd1372929712d336e'
+        >>> hexlify(p.encrypt(unhexlify(b'0123456789abcdef'))
+        ...        ) == b'd1372929712d336e'
+        True
 
     Identity:
 
-        >>> hexlify(p.decrypt(p.encrypt(unhexlify(b'0000000000000000'))))
-        b'0000000000000000'
+        >>> hexlify(p.decrypt(p.encrypt(unhexlify(b'0000000000000000')))
+        ...        ) == b'0000000000000000'
+        True
 
     """
 
@@ -65,6 +72,9 @@ class Pride(object):
                                       isinstance(key, bytearray)):
             raise ValueError("Incorrect key format")
         self.rounds = 20
+
+        key = bytearray(key)  # python 2 support
+
         self.k_1 = key[8:]
         self.k_0 = key[:8]
         self.k_2 = self.k_0
@@ -73,6 +83,8 @@ class Pride(object):
         if not (isinstance(plain_text, six.binary_type)
                 and len(plain_text) == 8):
             raise ValueError("argument should be an 8-byte bytearray")
+
+        plain_text = bytearray(plain_text)  # python 2 support
 
         state = _permute_inverse(plain_text)
         state = xor(state, self.k_0)
@@ -91,10 +103,9 @@ class Pride(object):
         return bytearray(state)
 
     def decrypt(self, cipher_text):
-        if not ((isinstance(cipher_text, six.binary_type) or
-                 isinstance(cipher_text, bytearray))
-                and
-                len(cipher_text) == 8):
+        cipher_text = bytearray(cipher_text)  # python 2 str support
+
+        if not len(cipher_text) == 8:
             raise ValueError("argument should be an 8-byte bytearray. "
                              "Type: %s, Length: %d" % (type(cipher_text),
                                                        len(cipher_text)))
@@ -123,6 +134,7 @@ def _round_function_enc(state, round_key):
     ...     _round_function_enc(unhexlify(b'ffffffffffffffff'), k), k)
     [255, 255, 255, 255, 255, 255, 255, 255]
     """
+    state, round_key = bytearray(state), bytearray(round_key)  # py2 support
     round_key = _permute_inverse(round_key)
     state = xor(state, round_key)
     state = _apply_sbox(state)
@@ -142,6 +154,7 @@ def _round_function_enc(state, round_key):
 
 def _round_function_dec(state, round_key):
     """Decryption round function"""
+    state, round_key = bytearray(state), bytearray(round_key)  # py2 support
 
     state = _permute(state)
 
@@ -186,6 +199,7 @@ def _permute(state):
     ...     bytearray(b'\x12\x34\x56\x78\x90\xab\xcd\xef'))
     True
     """
+    state = bytearray(state)  # python 2 support
 
     source = list(chain.from_iterable(
         (((state[i] & 0xf0) >> 4, state[i] & 0xf) for i in range(8))))
@@ -338,6 +352,8 @@ def _key_derivation(k_1, round_):
     def g_3(x):
         return (x + 197 * round_) % 256
 
+    k_1 = bytearray(k_1)
+
     key = [k_1[0], g_0(k_1[1]), k_1[2], g_1(k_1[3]),
            k_1[4], g_2(k_1[5]), k_1[6], g_3(k_1[7])]
     return key
@@ -460,8 +476,5 @@ _L2_inverse = (
 )
 
 if __name__ == "__main__":
-    if six.PY2:
-        print("Python 2 is currently not supported")
-        exit(1)
     import doctest
     doctest.testmod()
