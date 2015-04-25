@@ -238,11 +238,11 @@ def _apply_matrix(matrix, state):
         newrow = 0
         for i in range(16):
             if row[i] == 1:
-                newrow ^= (state & (2**(15-i))) >> 15 - i
+                newrow ^= (state & (2**(15-i))) >> (15-i)
         state_.append(newrow)
     x = 0
     for j in range(16):
-        x |= (state_[j] << (15-j))
+        x |= state_[j] << (15-j)
     return x
 
 
