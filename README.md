@@ -11,8 +11,12 @@ https://github.com/thomwiggers/python-pride
 
 Licence: New BSD
 
-Known Issues
-------------
+Usage
+-----
 
-* Probable endianness problem screws up the end result.
+    from pride import Pride
+    p = Pride(key)
+    ciphertext = p.encrypt(message)
+    plaintext = p.decrypt(ciphertext)
 
+Results will be `bytearray`s

@@ -16,7 +16,6 @@ Licence: BSD
 from __future__ import print_function, unicode_literals
 
 import six
-from binascii import hexlify
 from itertools import chain
 
 
@@ -36,18 +35,18 @@ class Pride(object):
 
     Usage::
 
-        >>> from binascii import unhexlify
+        >>> from binascii import unhexlify, hexlify
         >>> p = Pride(unhexlify(b'00000000000000000000000000000000'))
-        >>> p.encrypt(unhexlify(b'0000000000000000'))
+        >>> hexlify(p.encrypt(unhexlify(b'0000000000000000')))
         b'82b4109fcc70bd1f'
-        >>> p.encrypt(unhexlify(b'ffffffffffffffff'))
+        >>> hexlify(p.encrypt(unhexlify(b'ffffffffffffffff')))
         b'd70e60680a17b956'
-        >>> p.decrypt(unhexlify(b'd70e60680a17b956'))
+        >>> hexlify(p.decrypt(unhexlify(b'd70e60680a17b956')))
         b'ffffffffffffffff'
 
     Identity:
 
-        >>> p.decrypt(unhexlify(p.encrypt(unhexlify(b'0000000000000000'))))
+        >>> hexlify(p.decrypt((p.encrypt(unhexlify(b'0000000000000000')))))
         b'0000000000000000'
 
     """
@@ -78,9 +77,8 @@ class Pride(object):
         state = _apply_sbox(state)
 
         state = _permute(xor(state, self.k_2))
-        state = bytearray(state)
 
-        return hexlify(state)
+        return bytearray(state)
 
     def decrypt(self, cipher_text):
         if not (isinstance(cipher_text, six.binary_type) and
@@ -101,7 +99,7 @@ class Pride(object):
 
         state = _permute(xor(state, self.k_0))
 
-        return hexlify(bytearray(state))
+        return bytearray(state)
 
 
 def _round_function_enc(state, round_key):
@@ -159,13 +157,13 @@ def _permute(state):
 
     >>> _permute(bytearray([0xff] * 8))
     bytearray(b'\xff\xff\xff\xff\xff\xff\xff\xff')
-    >>> _permute(bytearray([0x11] * 4 + [0x00] * 4))
+    >>> _permute(bytearray([0x88] * 4 + [0x00] * 4))
     bytearray(b'\xff\x00\x00\x00\x00\x00\x00\x00')
-    >>> _permute(bytearray([0x22] * 8))
+    >>> _permute(bytearray([0x44] * 8))
     bytearray(b'\x00\x00\xff\xff\x00\x00\x00\x00')
-    >>> _permute(bytearray([0x88] * 8))
+    >>> _permute(bytearray([0x11] * 8))
     bytearray(b'\x00\x00\x00\x00\x00\x00\xff\xff')
-    >>> _permute(bytearray([0x00] * 4 + [0x88] * 4))
+    >>> _permute(bytearray([0x00] * 4 + [0x11] * 4))
     bytearray(b'\x00\x00\x00\x00\x00\x00\x00\xff')
     >>> import random
     >>> state = bytearray([random.randint(0,255) for i in range(8)])
@@ -183,12 +181,12 @@ def _permute(state):
     state_ = [0] * 4
     for i in range(4):
         for s in range(16):
-            state_[i] |= (source[s] & (2**i)) >> i << s
+            state_[i] |= (source[s] & (2**(3-i))) >> (3-i) << (15-s)
 
     newstate = [0] * 8
     for i in range(4):
-        newstate[2 * i] = (state_[i] & 0xff)
-        newstate[2 * i + 1] = (state_[i] & 0xff00) >> 8
+        newstate[2 * i] = (state_[i] & 0xff00) >> 8
+        newstate[2 * i + 1] = (state_[i] & 0xff)
 
     return bytearray(newstate)
 
@@ -197,20 +195,20 @@ def _permute_inverse(state):
     r"""Reverse a permutation
 
     >>> _permute_inverse([0x00] * 6 + [0xff] * 2)
-    bytearray(b'\x88\x88\x88\x88\x88\x88\x88\x88')
+    bytearray(b'\x11\x11\x11\x11\x11\x11\x11\x11')
     >>> _permute_inverse([0xff] + [0x00] * 7)
-    bytearray(b'\x11\x11\x11\x11\x00\x00\x00\x00')
-    >>> _permute_inverse([0, 0, 255, 255, 0, 0, 0, 0]) == bytearray([0x22]*8)
+    bytearray(b'\x88\x88\x88\x88\x00\x00\x00\x00')
+    >>> _permute_inverse([0, 0, 255, 255, 0, 0, 0, 0]) == bytearray([0x44]*8)
     True
     """
     state_ = [0x0] * 16
 
-    source = (state[0] | state[1] << 8, state[2] | state[3] << 8,
-              state[4] | state[5] << 8, state[6] | state[7] << 8)
+    source = (state[1] | state[0] << 8, state[3] | state[2] << 8,
+              state[5] | state[4] << 8, state[7] | state[6] << 8)
 
     for i in range(16):
         for s in range(4):
-            state_[i] |= (source[s] & (2**i)) >> i << s
+            state_[i] |= (source[s] & (2**(15-i))) >> (15-i) << (3-s)
 
     result = [a << 4 | b for (a, b) in zip(state_[::2], state_[1::2])]
 
